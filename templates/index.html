@@ -116,55 +116,90 @@
     </div>
 
     <script>
-        // 瞬きアニメーションの実装
+        // ===== 瞬きアニメーション =====
         const eyesLayer = document.querySelector('.layer-eyes');
-        let isBlinking = false; // 瞬き実行中フラグ
+        let isBlinking = false;
 
-        // 瞬きシーケンスの画像配列（目を閉じて開く）
         const blinkSequence = [
-            '00.png',   // 通常
-            '00a.png',  // 少し閉じる
-            '00b.png',  // もっと閉じる
-            '00c.png',  // さらに閉じる
-            '00d.png',  // ほぼ閉じる
-            '00e.png',  // 完全に閉じる
-            '00d.png',  // 開き始める
-            '00c.png',  // もう少し開く
-            '00b.png',  // さらに開く
-            '00a.png',  // ほぼ開く
-            '00.png'    // 通常に戻る
+            '00.png',
+            '00a.png',
+            '00b.png',
+            '00c.png',
+            '00d.png',
+            '00e.png',
+            '00d.png',
+            '00c.png',
+            '00b.png',
+            '00a.png',
+            '00.png'
         ];
 
-        // 瞬き1回を実行する関数
         function executeBlink() {
-            if (isBlinking) return; // 既に瞬き実行中なら何もしない
-
+            if (isBlinking) return;
             isBlinking = true;
             let frameIndex = 0;
-
-            // 0.02秒（20ms）ごとに画像を切り替える
             const blinkInterval = setInterval(() => {
                 if (frameIndex < blinkSequence.length) {
                     eyesLayer.src = `/images/目/${blinkSequence[frameIndex]}`;
                     frameIndex++;
                 } else {
-                    // 瞬きシーケンス終了
                     clearInterval(blinkInterval);
                     isBlinking = false;
                 }
-            }, 20); // 20ms = 0.02秒
+            }, 20);
         }
 
-        // 0.2秒（200ms）ごとに乱数をチェックして瞬きを判定
         setInterval(() => {
-            // 0〜1の範囲で乱数を生成
-            const randomValue = Math.random();
+            if (Math.random() >= 0.9) executeBlink();
+        }, 200);
 
-            // 乱数が0.9以上なら瞬きを実行（約10%の確率）
-            if (randomValue >= 0.9) {
-                executeBlink();
+        // ===== 口アニメーション =====
+        const mouthLayer = document.querySelector('.layer-mouth');
+
+        // 正規化値（0〜1）を口画像ファイル名に変換する
+        // 0.0 → 00.png, 1.0 → 00e.png の6段階
+        const mouthImages = ['00.png', '00a.png', '00b.png', '00c.png', '00d.png', '00e.png'];
+        function soundValueToMouthImage(value) {
+            const index = Math.min(Math.floor(value * mouthImages.length), mouthImages.length - 1);
+            return mouthImages[index];
+        }
+
+        let isMouthPlaying = false;
+
+        // sound_values を順番に再生してアニメーションする
+        function playMouthAnimation(soundValues, sampleTimeMs) {
+            if (isMouthPlaying) return;
+            isMouthPlaying = true;
+
+            let i = 0;
+            function step() {
+                if (i < soundValues.length) {
+                    mouthLayer.src = `/images/口/${soundValueToMouthImage(soundValues[i])}`;
+                    i++;
+                    setTimeout(step, sampleTimeMs);
+                } else {
+                    // 再生終了 → 口を閉じた状態に戻す
+                    mouthLayer.src = '/images/口/00.png';
+                    isMouthPlaying = false;
+                }
             }
-        }, 200); // 200ms = 0.2秒
+            step();
+        }
+
+        // サーバーのキューを定期的に確認する（100msごと）
+        setInterval(async () => {
+            if (isMouthPlaying) return; // 再生中はポーリングしない
+            try {
+                const res = await fetch('/sound_queue');
+                const json = await res.json();
+                if (json.status === 'ok' && json.data) {
+                    const { sound_values, sample_time } = json.data;
+                    playMouthAnimation(sound_values, sample_time * 1000);
+                }
+            } catch (e) {
+                // サーバーに接続できない場合は無視
+            }
+        }, 100);
     </script>
 </body>
 </html>
