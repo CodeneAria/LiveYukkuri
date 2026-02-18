@@ -113,7 +113,7 @@ class VoiceManager:
                 return jsonify({'status': 'error', 'message': str(exc)}), 500
 
             # Forward normalized sound values to the visualizer server
-            visualizer_url = f'http://{HOST_NAME}:{self.visualizer_port}/play_sound'
+            visualizer_url = f'http://127.0.0.1:{self.visualizer_port}/play_sound'
             try:
                 httpx.post(
                     visualizer_url,
@@ -142,6 +142,14 @@ class VoiceManager:
 
         outbound_thread = threading.Thread(target=run_outbound, daemon=True)
         outbound_thread.start()
+
+        def _print_open_message():
+            print(
+                f'\nOpen: http://127.0.0.1:{self.visualizer_port}', flush=True)
+
+        timer = threading.Timer(1.0, _print_open_message)
+        timer.daemon = True
+        timer.start()
 
         self.visualizer_app.run(debug=debug, host=self.host, port=self.visualizer_port,
                                 use_reloader=False)
