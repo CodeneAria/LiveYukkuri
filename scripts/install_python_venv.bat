@@ -73,13 +73,12 @@ if errorlevel 1 (
 echo Virtual environment created successfully.
 echo.
 
-:: Install Flask using the venv's pip
+:: Install libraries in the virtual environment
 set "VENV_PYTHON=%VENV_DIR%\Scripts\python.exe"
-echo Installing Flask...
 "%VENV_PYTHON%" -m pip install --upgrade pip
-"%VENV_PYTHON%" -m pip install flask
+"%VENV_PYTHON%" -m pip install flask openai
 if errorlevel 1 (
-    echo ERROR: Failed to install Flask.
+    echo ERROR: Failed to install required libraries.
     pause
     exit /b 1
 )
@@ -88,7 +87,7 @@ echo.
 echo ============================================================
 echo  Setup complete!
 echo  Virtual environment : %VENV_DIR%
-echo  Flask has been installed in the virtual environment.
+echo  Required libraries have been installed in the virtual environment.
 echo ============================================================
 echo.
 pause
