@@ -3,6 +3,7 @@ import time
 import pathlib
 import httpx
 import atexit
+import winsound
 
 from openai import OpenAI
 
@@ -16,8 +17,6 @@ server_process = subprocess.Popen(
     stderr=subprocess.DEVNULL,
 )
 
-# スクリプト終了時にサーバーを停止する
-
 
 def _shutdown_server():
     if server_process.poll() is None:
@@ -30,7 +29,6 @@ def _shutdown_server():
 
 atexit.register(_shutdown_server)
 
-# サーバーが起動するまで待機（最大10秒）
 for _ in range(20):
     try:
         httpx.get(SERVER_URL, timeout=0.5)
@@ -42,10 +40,11 @@ else:
 
 client = OpenAI(api_key="a", base_url=f"{SERVER_URL}/v1")
 
-# ストリーミングレスポンスを使用して音声データを取得し、WAVファイルに保存
 with client.audio.speech.with_streaming_response.create(
     model="tts-1",
     voice="f1",
     input="私は博麗霊夢です。よろしくお願いします。",
 ) as response:
-    response.stream_to_file("output.wav")
+    audio_data = response.read()
+
+winsound.PlaySound(audio_data, winsound.SND_MEMORY)
