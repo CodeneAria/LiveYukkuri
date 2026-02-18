@@ -72,6 +72,9 @@ htmlcov/
 *.gguf
 *.bin
 
+# executable files
+*.exe
+
 # material
 material/
 
