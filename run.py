@@ -2,6 +2,9 @@ from flask import Flask, render_template, send_from_directory, request, jsonify
 import os
 import threading
 
+HOST_NAME = "0.0.0.0"
+PORT = 50200
+
 app = Flask(__name__)
 
 # 画像ディレクトリのパスを設定
@@ -49,4 +52,4 @@ def get_sound_queue():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='127.0.0.1', port=5000)
+    app.run(debug=True, host=HOST_NAME, port=PORT)
