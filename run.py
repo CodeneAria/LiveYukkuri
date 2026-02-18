@@ -5,7 +5,7 @@ app = Flask(__name__)
 
 # 画像ディレクトリのパスを設定
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-IMAGE_DIR = os.path.join(BASE_DIR, 'れいむ')
+IMAGE_DIR = os.path.join(BASE_DIR, 'material/れいむ')
 
 @app.route('/')
 def index():
