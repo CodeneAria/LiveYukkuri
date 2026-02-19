@@ -12,7 +12,7 @@ sample_time = 0.1
 SERVER_URL = 'http://127.0.0.1:5000'
 
 
-def normalize(values: list[float]) -> list[float]:
+def scale(values: list[float]) -> list[float]:
     """sound_valuesを最大値で除算して0〜1に正規化する"""
     max_val = max(values)
     if max_val == 0:
@@ -22,14 +22,14 @@ def normalize(values: list[float]) -> list[float]:
 
 def send_sound(values: list[float], s_time: float) -> None:
     """正規化済みsound_valuesとsample_timeをサーバーに送信する"""
-    normalized = normalize(values)
+    scaled = scale(values)
     print(
-        f"再生時間: {len(normalized) * s_time:.1f} 秒（{len(normalized)} サンプル × {s_time} 秒）")
-    print(f"正規化後の先頭10件: {[round(v, 3) for v in normalized[:10]]}")
+        f"再生時間: {len(scaled) * s_time:.1f} 秒（{len(scaled)} サンプル × {s_time} 秒）")
+    print(f"正規化後の先頭10件: {[round(v, 3) for v in scaled[:10]]}")
 
     response = httpx.post(
         f'{SERVER_URL}/play_sound',
-        json={'sound_values': normalized, 'sample_time': s_time},
+        json={'sound_values': scaled, 'sample_time': s_time},
         timeout=5.0,
     )
     response.raise_for_status()

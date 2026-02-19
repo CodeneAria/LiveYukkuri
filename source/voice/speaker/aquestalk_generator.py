@@ -5,6 +5,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 sys.path.append(str(Path(__file__).resolve().parents[2]))
+sys.path.append(str(Path(__file__).resolve().parents[3]))
 
 import atexit
 import io
@@ -17,7 +18,8 @@ import httpx
 from openai import OpenAI
 
 SAMPLE_INTERVAL = 0.1  # seconds
-SERVER_EXE = Path(__file__).resolve().parents[2] / "aquestalk-server.exe"
+VOICE_SCALE_FACTOR = 1.5
+SERVER_EXE = Path(__file__).resolve().parents[3] / "aquestalk-server.exe"
 AQUESTALK_URL = "http://localhost:8080"
 
 
@@ -100,16 +102,16 @@ class AquesTalkGenerator:
 
         return volumes
 
-    def normalize(self, values: list[float]) -> list[float]:
-        """Normalize values to 0–1 range by dividing by the maximum."""
+    def scale(self, values: list[float]) -> list[float]:
+        """scale values to 0–1 range by dividing by the maximum."""
         max_val = max(values) if values else 0
         if max_val == 0:
             return [0.0] * len(values)
-        return [v / max_val for v in values]
+        return [v / max_val * VOICE_SCALE_FACTOR for v in values]
 
     def speak(self, text: str, interval: float = SAMPLE_INTERVAL) -> tuple[list[float], float]:
-        """Generate audio from text and return (normalized_sound_values, sample_time)."""
+        """Generate audio from text and return (scaled_sound_values, sample_time)."""
         audio_data = self.generate_audio(text)
         sound_values = self.extract_sound_values(audio_data, interval)
-        normalized = self.normalize(sound_values)
-        return normalized, interval
+        scaled = self.scale(sound_values)
+        return scaled, interval

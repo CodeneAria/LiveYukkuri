@@ -1,9 +1,9 @@
-from source.voice_manager import VoiceManager
+from source.live_yukkuri_runner import LiveYukkuriRunner
 
 
 def main() -> None:
-    voice_manager = VoiceManager()
-    voice_manager.run()
+    runner = LiveYukkuriRunner()
+    runner.run()
 
 
 if __name__ == '__main__':
