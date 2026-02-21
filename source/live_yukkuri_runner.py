@@ -15,8 +15,7 @@ HOST_NAME = "0.0.0.0"
 OUTBOUND_PORT = 50200
 VISUALIZER_PORT = 50201
 
-# プロジェクトルート (live_yukkuri_runner.py の親ディレクトリ)
-_BASE_DIR = str(Path(__file__).resolve().parents[1])
+BASE_DIRECTORY = str(Path(__file__).resolve().parents[1])
 
 
 class LiveYukkuriRunner:
@@ -37,13 +36,13 @@ class LiveYukkuriRunner:
         self._visualizer_port = visualizer_port
         self._outbound_port = outbound_port
 
-        self._image_dir = os.path.join(_BASE_DIR, 'material', 'れいむ')
+        self._image_dir = os.path.join(BASE_DIRECTORY, 'material', 'れいむ')
 
         # コア機能
         self._voice_manager = VoiceManager()
 
         # Visualizer Flask app
-        templates_path = os.path.join(_BASE_DIR, 'source', 'templates')
+        templates_path = os.path.join(BASE_DIRECTORY, 'source', 'templates')
         self.visualizer_app = Flask(__name__, template_folder=templates_path)
 
         # Outbound Flask app
