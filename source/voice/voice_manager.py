@@ -41,7 +41,7 @@ class VoiceManager:
         last_sample_time = 0.0
 
         for audio_data, sound_values, sample_time in self._voice_generator.generate_sequential(text):
-            # 音声再生を別プロセスで開始（非ブロッキング）
+            # 音声再生を別プロセスで開始
             play_proc = self._audio_player.play_async(audio_data)
 
             # 音量値を文ごとにキューへ追加

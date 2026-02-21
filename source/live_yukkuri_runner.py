@@ -11,9 +11,11 @@ from flask import Flask, render_template, send_from_directory, request, jsonify
 
 from source.voice.voice_manager import VoiceManager
 
-HOST_NAME = "0.0.0.0"
-OUTBOUND_PORT = 50200
-VISUALIZER_PORT = 50201
+from configuration.communcation_settings import (
+    HOST_NAME,
+    OUTBOUND_PORT,
+    VISUALIZER_PORT
+)
 
 BASE_DIRECTORY = str(Path(__file__).resolve().parents[1])
 
