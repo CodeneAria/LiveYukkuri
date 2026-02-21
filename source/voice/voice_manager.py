@@ -36,19 +36,28 @@ class VoiceManager:
         Returns:
             (audio_bytes, scaled_sound_values, sample_time)
         """
-        audio_data, sound_values, sample_time = self._voice_generator.generate(
-            text)
+        all_sound_values: list[float] = []
+        last_audio_data: bytes | None = None
+        last_sample_time = 0.0
 
-        # 音声再生を別プロセスで開始（非ブロッキング）
-        play_proc = self._audio_player.play_async(audio_data)
+        for audio_data, sound_values, sample_time in self._voice_generator.generate_sequential(text):
+            # 音声再生を別プロセスで開始（非ブロッキング）
+            play_proc = self._audio_player.play_async(audio_data)
 
-        # 音量値をキューに追加
-        self.enqueue_sound(sound_values, sample_time)
+            # 音量値を文ごとにキューへ追加
+            self.enqueue_sound(sound_values, sample_time)
 
-        # 再生完了を待機
-        play_proc.join()
+            # 再生完了を待機
+            play_proc.join()
 
-        return audio_data, sound_values, sample_time
+            last_audio_data = audio_data
+            last_sample_time = sample_time
+            all_sound_values.extend(sound_values)
+
+        if last_audio_data is None:
+            raise ValueError('text is empty')
+
+        return last_audio_data, all_sound_values, last_sample_time
 
     def enqueue_sound(self, sound_values: list[float], sample_time: float) -> None:
         """音量データをキューに追加する。"""
