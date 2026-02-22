@@ -4,44 +4,18 @@
 
 ## 概要
 
-- 外部システムから HTTP POST でテキストを送信すると、AquesTalk サーバーを通じて日本語音声を合成・再生します。
-- 音声の音量データを元に、ブラウザ上のゆっくりキャラクターの口がリアルタイムに動きます。
-- 目は一定間隔でランダムに瞬きします。
+外部システムから HTTP POST でテキストを送信すると、AquesTalk サーバーを通じて日本語音声を合成・再生します。
 
-## システム構成
+音声の音量データを元に、ブラウザ上のゆっくりキャラクターの口がリアルタイムに動きます。
 
-```
-外部システム
-    │
-    │ POST /speak（テキスト送信）
-    ▼
-Outbound サーバー（ポート 50200）
-    │
-    │ 音声合成・再生（AquesTalk）
-    ▼
-VoiceManager
-    │
-    │ 音量データをキューに転送
-    ▼
-Visualizer サーバー（ポート 50201）
-    │
-    │ SSE（Server-Sent Events）で配信
-    ▼
-ブラウザ（http://127.0.0.1:50201）
-    └── ゆっくりキャラクターのリアルタイムアニメーション
-```
+目は一定間隔でランダムに瞬きします。
 
-## ディレクトリ構成
+現在のデフォルトキャラ設定は 博麗霊夢（東方 Project）です。
 
-| パス | 説明 |
-|---|---|
-| `run.py` | エントリーポイント |
-| `source/live_yukkuri_runner.py` | アプリ全体の管理クラス |
-| `source/visualizer/` | ブラウザ表示用 Flask サーバー・HTML |
-| `source/voice/` | 音声生成・再生管理 |
-| `configuration/` | ホスト名・ポート・キャラクター設定 |
-| `material/れいむ/` | ゆっくり霊夢の画像素材 |
-| `scripts/` | セットアップ用バッチスクリプト |
+## 動作環境
+
+- Windows11
+- Python 3.14（動作確認済みバージョン）
 
 ## セットアップ
 
@@ -57,11 +31,15 @@ scripts\install_python_venv.bat
 scripts\download_aquestalk_server.bat
 ```
 
+AquesTalk TTS API サーバー (https://github.com/Lqm1/aquestalk-server) を使用します。必ず利用規約をご確認ください。
+
 ### 3. ゆっくり霊夢の画像素材のダウンロード
 
 ```bat
 scripts\download_yukkuri_reimu.bat
 ```
+
+ゆっくり霊夢の画像はきつねさんの画像素材 (http://nicotalk.com/charasozai_kt.html) を使用します。必ず利用規約をご確認ください。
 
 ## 起動方法
 
@@ -92,18 +70,22 @@ Content-Type: application/json
 {"voice_output_stop_flag": true}
 ```
 
-## 設定
+## システム構成
 
-| ファイル | 項目 | 説明 |
-|---|---|---|
-| `configuration/communication_settings.py` | `OUTBOUND_PORT` | 外部テキスト受信ポート（既定: 50200） |
-| `configuration/communication_settings.py` | `VISUALIZER_PORT` | ブラウザ表示ポート（既定: 50201） |
-| `configuration/person_settings.py` | `MATERIAL_NAME` | 使用するキャラクター素材名（既定: れいむ） |
-| `configuration/person_settings.py` | `VOICE_SPEED` | 読み上げ速度（既定: 1.2） |
-| `configuration/person_settings.py` | `MOUSE_DELAY_TIME` | 口アニメーションの遅延時間（既定: 0.5 秒） |
+概要クラス図
 
-## 動作環境
+![概要クラス図](./document/system/概要クラス図.svg)
 
-- Windows
-- Python 3.x
-- AquesTalk サーバー（別途セットアップ必要）
+| パス | 説明 |
+| --- | --- |
+| `run.py` | エントリーポイント |
+| `source/live_yukkuri_runner.py` | アプリ全体の管理クラス |
+| `source/visualizer/` | ブラウザ表示用 Flask サーバー・HTML |
+| `source/voice/` | 音声生成・再生管理 |
+| `configuration/` | ホスト名・ポート・キャラクター設定 |
+| `material/` | ゆっくりの画像素材 |
+| `scripts/` | セットアップ用バッチスクリプト |
+
+## ライセンス
+
+MIT License - 詳細は [LICENSE](./LICENSE.txt) を参照してください。
