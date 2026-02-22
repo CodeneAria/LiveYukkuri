@@ -7,6 +7,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 
 import threading
+import queue
 
 from source.voice.speaker.voice_generator import VoiceGenerator
 from source.voice.speaker.audio_player import AudioPlayer
@@ -36,23 +37,61 @@ class VoiceManager:
         Returns:
             (audio_bytes, scaled_sound_values, sample_time)
         """
+        chunks: queue.Queue[tuple[bytes, list[float], float]
+                            | None] = queue.Queue()
+        stop_event = threading.Event()
+        errors: list[Exception] = []
+
         all_sound_values: list[float] = []
         last_audio_data: bytes | None = None
         last_sample_time = 0.0
 
-        for audio_data, sound_values, sample_time in self._voice_generator.generate_sequential(text):
-            # 音声再生を別プロセスで開始
-            play_proc = self._audio_player.play_async(audio_data)
+        def _producer() -> None:
+            try:
+                for chunk in self._voice_generator.generate_sequential(text):
+                    if stop_event.is_set():
+                        break
+                    chunks.put(chunk)
+            except Exception as exc:
+                errors.append(exc)
+                stop_event.set()
+            finally:
+                chunks.put(None)
 
-            # 音量値を文ごとにキューへ追加
-            self.enqueue_sound(sound_values, sample_time)
+        def _consumer() -> None:
+            nonlocal last_audio_data, last_sample_time
+            try:
+                while True:
+                    item = chunks.get()
+                    if item is None:
+                        break
 
-            # 再生完了を待機
-            play_proc.join()
+                    audio_data, sound_values, sample_time = item
 
-            last_audio_data = audio_data
-            last_sample_time = sample_time
-            all_sound_values.extend(sound_values)
+                    # 文ごとの口パクデータを追加
+                    self.enqueue_sound(sound_values, sample_time)
+
+                    # 再生サーバーへ送信して再生
+                    played = self._audio_player.play(audio_data)
+                    if not played:
+                        raise RuntimeError('audio playback failed')
+
+                    last_audio_data = audio_data
+                    last_sample_time = sample_time
+                    all_sound_values.extend(sound_values)
+            except Exception as exc:
+                errors.append(exc)
+                stop_event.set()
+
+        producer_thread = threading.Thread(target=_producer, daemon=True)
+        consumer_thread = threading.Thread(target=_consumer, daemon=True)
+        producer_thread.start()
+        consumer_thread.start()
+        producer_thread.join()
+        consumer_thread.join()
+
+        if errors:
+            raise errors[0]
 
         if last_audio_data is None:
             raise ValueError('text is empty')
