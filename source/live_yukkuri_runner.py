@@ -23,6 +23,8 @@ from configuration.person_settings import (
 
 BASE_DIRECTORY = str(Path(__file__).resolve().parents[1])
 
+MOUSE_DELAY = 0.0
+
 
 class LiveYukkuriRunner:
     """アプリケーション全体を管理するトップレベルクラス。
@@ -127,7 +129,28 @@ class LiveYukkuriRunner:
             while not self._sound_forwarder_stop_event.is_set():
                 data = self._voice_manager.dequeue_sound()
                 if data is not None:
-                    self._enqueue_visualizer_sound(data)
+                    delay = 0.0
+                    if isinstance(data, dict):
+                        delay = MOUSE_DELAY
+
+                    if delay and delay > 0.0:
+                        def _enqueue_later(d=data) -> None:
+                            # Remove 'delay' key when forwarding to visualizer
+                            if isinstance(d, dict) and 'delay' in d:
+                                payload = {k: v for k,
+                                           v in d.items() if k != 'delay'}
+                            else:
+                                payload = d
+                            self._enqueue_visualizer_sound(payload)
+
+                        timer = threading.Timer(delay, _enqueue_later)
+                        timer.daemon = True
+                        timer.start()
+                    else:
+                        if isinstance(data, dict) and 'delay' in data:
+                            data = {k: v for k, v in data.items() if k !=
+                                    'delay'}
+                        self._enqueue_visualizer_sound(data)
 
                 self._sound_forwarder_stop_event.wait(0.05)
 

@@ -28,12 +28,11 @@ class VoiceManager:
         self._sound_queue: list[dict] = []
         self._sound_queue_lock = threading.Lock()
 
-    def speak(self, text: str, mouth_delay: float = 0.0) -> tuple[bytes, list[float], float]:
+    def speak(self, text: str) -> tuple[bytes, list[float], float]:
         """テキストから音声を生成・再生し、結果を返す。
 
         Args:
             text: 読み上げテキスト
-            mouth_delay: 秒単位で口パクデータのキュー追加を遅らせる（非同期）。
 
         Returns:
             (audio_bytes, scaled_sound_values, sample_time)
@@ -71,7 +70,7 @@ class VoiceManager:
 
                     # 文ごとの口パクデータを追加（必要なら遅延を挿入）
                     self.enqueue_sound(
-                        sound_values, sample_time, delay=mouth_delay)
+                        sound_values, sample_time)
 
                     # 再生サーバーへ送信して再生
                     played = self._audio_player.play(audio_data)
@@ -104,27 +103,9 @@ class VoiceManager:
         self,
         sound_values: list[float],
         sample_time: float,
-        delay: float = 0.0
     ) -> None:
         """音量データをキューに追加する。
-
-        If `delay` is greater than 0.0, the append is scheduled asynchronously
-        after `delay` seconds so that mouth-animation can be started later than
-        the enqueue call without blocking playback.
         """
-        if delay and delay > 0.0:
-            def _append_later() -> None:
-                with self._sound_queue_lock:
-                    self._sound_queue.append({
-                        'sound_values': sound_values,
-                        'sample_time': sample_time,
-                    })
-
-            timer = threading.Timer(delay, _append_later)
-            timer.daemon = True
-            timer.start()
-            return
-
         with self._sound_queue_lock:
             self._sound_queue.append({
                 'sound_values': sound_values,
