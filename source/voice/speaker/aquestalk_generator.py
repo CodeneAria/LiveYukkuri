@@ -21,7 +21,8 @@ from configuration.person_settings import (
     AQUESTALK_URL,
     SERVER_EXE,
     SAMPLE_INTERVAL,
-    VOICE_SCALE_FACTOR
+    VOICE_SCALE_FACTOR,
+    VOICE_SPEED
 )
 
 
@@ -62,6 +63,7 @@ class AquesTalkGenerator:
             model="tts-1",
             voice="f1",
             input=text,
+            speed=VOICE_SPEED,
         ) as response:
             return response.read()
 

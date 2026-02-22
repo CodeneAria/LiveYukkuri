@@ -10,6 +10,7 @@ MATERIAL_NAME = "れいむ"
 MOUSE_DELAY_TIME = 0.5
 
 # aquestalk settings
+VOICE_SPEED = 1.2
 SAMPLE_INTERVAL = 0.1  # seconds
 VOICE_SCALE_FACTOR = 1.5
 SERVER_EXE = Path(__file__).resolve().parents[1] / "aquestalk-server.exe"

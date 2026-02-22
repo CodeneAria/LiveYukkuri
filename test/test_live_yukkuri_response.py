@@ -8,9 +8,8 @@ import httpx
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from configuration.communication_settings import OUTBOUND_PORT
+from configuration.communication_settings import SPEAK_URL
 
-SPEAK_URL = f"http://127.0.0.1:{OUTBOUND_PORT}/speak"
 # TEXT = "私は博麗霊夢です。よろしくお願いします。"
 TEXT = "この湖こんなに広かったかしら？　霧で見通しが悪くて困ったわ。もしかして私って方向音痴？"
 
