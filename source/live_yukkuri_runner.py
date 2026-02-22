@@ -23,7 +23,7 @@ from configuration.person_settings import (
 
 BASE_DIRECTORY = str(Path(__file__).resolve().parents[1])
 
-MOUSE_DELAY = 0.0
+MOUSE_DELAY = 0.4
 
 
 class LiveYukkuriRunner:
