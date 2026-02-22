@@ -8,9 +8,10 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from flask import Flask, render_template, send_from_directory, request, jsonify, Response, stream_with_context
+from flask import Flask, request, jsonify
 
 from source.voice.voice_manager import VoiceManager
+from source.visualizer.templates.visualize_manager import VisualizeManager
 
 from configuration.communication_settings import (
     HOST_NAME,
@@ -50,77 +51,22 @@ class LiveYukkuriRunner:
         # コア機能
         self._voice_manager = VoiceManager()
 
-        # Visualizer へ渡すための中継キュー
-        self._visualizer_sound_queue: list[dict] = []
-        self._visualizer_sound_queue_lock = threading.Lock()
-        self._visualizer_sound_queue_condition = threading.Condition(
-            self._visualizer_sound_queue_lock)
-
         # VoiceManager のキュー監視スレッド制御
         self._sound_forwarder_stop_event = threading.Event()
         self._sound_forwarder_thread: threading.Thread | None = None
-
-        # Visualizer Flask app
-        templates_path = os.path.join(
-            BASE_DIRECTORY, 'source', 'visualizer', 'templates')
-        self.visualizer_app = Flask(__name__, template_folder=templates_path)
+        # Visualizer manager
+        self.visualize_manager = VisualizeManager(BASE_DIRECTORY, MATERIAL_NAME)
 
         # Outbound Flask app
         self.outbound_app = Flask(__name__ + '_outbound')
-
-        self._register_visualizer_routes()
+        
         self._register_outbound_routes()
 
     # ------------------------------------------------------------------
     # Visualizer server routes
     # ------------------------------------------------------------------
 
-    def _register_visualizer_routes(self) -> None:
-        app = self.visualizer_app
-        image_dir = self._image_directory
 
-        @app.route('/')
-        def index():
-            return render_template('index.html')
-
-        @app.route('/images/<path:folder>/<path:filename>')
-        def serve_image(folder, filename):
-            image_path = os.path.join(image_dir, folder)
-            return send_from_directory(image_path, filename)
-
-        @app.route('/sound_events', methods=['GET'])
-        def sound_events():
-            @stream_with_context
-            def generate():
-                while True:
-                    data = self._wait_and_dequeue_visualizer_sound(
-                        timeout=15.0)
-                    if data is None:
-                        yield ': keep-alive\n\n'
-                        continue
-
-                    payload = json.dumps(data, ensure_ascii=False)
-                    yield f'data: {payload}\n\n'
-
-            response = Response(generate(), mimetype='text/event-stream')
-            response.headers['Cache-Control'] = 'no-cache'
-            response.headers['X-Accel-Buffering'] = 'no'
-            return response
-
-    def _enqueue_visualizer_sound(self, data: dict) -> None:
-        with self._visualizer_sound_queue_condition:
-            self._visualizer_sound_queue.append(data)
-            self._visualizer_sound_queue_condition.notify()
-
-    def _wait_and_dequeue_visualizer_sound(self, timeout: float) -> dict | None:
-        with self._visualizer_sound_queue_condition:
-            if not self._visualizer_sound_queue:
-                self._visualizer_sound_queue_condition.wait(timeout=timeout)
-
-            if self._visualizer_sound_queue:
-                return self._visualizer_sound_queue.pop(0)
-
-        return None
 
     def _start_sound_forwarder(self) -> None:
         if self._sound_forwarder_thread is not None:
@@ -136,20 +82,18 @@ class LiveYukkuriRunner:
                         def _enqueue_later(d=data) -> None:
                             # Remove 'delay' key when forwarding to visualizer
                             if isinstance(d, dict) and 'delay' in d:
-                                payload = {k: v for k,
-                                           v in d.items() if k != 'delay'}
+                                payload = {k: v for k, v in d.items() if k != 'delay'}
                             else:
                                 payload = d
-                            self._enqueue_visualizer_sound(payload)
+                            self.visualize_manager.enqueue_visualizer_sound(payload)
 
                         timer = threading.Timer(delay, _enqueue_later)
                         timer.daemon = True
                         timer.start()
                     else:
                         if isinstance(data, dict) and 'delay' in data:
-                            data = {k: v for k, v in data.items() if k !=
-                                    'delay'}
-                        self._enqueue_visualizer_sound(data)
+                            data = {k: v for k, v in data.items() if k != 'delay'}
+                        self.visualize_manager.enqueue_visualizer_sound(data)
 
                 self._sound_forwarder_stop_event.wait(
                     SOUND_QUEUE_CHECK_INTERVAL)
@@ -211,7 +155,7 @@ class LiveYukkuriRunner:
         timer.daemon = True
         timer.start()
 
-        self.visualizer_app.run(
+        self.visualize_manager.run(
             debug=debug,
             host=self._host,
             port=self._visualizer_port,
