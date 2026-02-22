@@ -5,6 +5,9 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
+# person settings
+MATERIAL_NAME = "れいむ"
+
 # aquestalk settings
 SAMPLE_INTERVAL = 0.1  # seconds
 VOICE_SCALE_FACTOR = 1.5

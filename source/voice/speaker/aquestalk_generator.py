@@ -17,7 +17,7 @@ from pathlib import Path
 import httpx
 from openai import OpenAI
 
-from configuration.settings import (
+from configuration.person_settings import (
     AQUESTALK_URL,
     SERVER_EXE,
     SAMPLE_INTERVAL,

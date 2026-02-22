@@ -19,7 +19,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from source.voice.voice_manager import VoiceManager
 
-from configuration.settings import (
+from configuration.person_settings import (
     VOICE_SCALE_FACTOR
 )
 

@@ -16,6 +16,9 @@ from configuration.communication_settings import (
     OUTBOUND_PORT,
     VISUALIZER_PORT
 )
+from configuration.person_settings import (
+    MATERIAL_NAME
+)
 
 BASE_DIRECTORY = str(Path(__file__).resolve().parents[1])
 
@@ -38,7 +41,8 @@ class LiveYukkuriRunner:
         self._visualizer_port = visualizer_port
         self._outbound_port = outbound_port
 
-        self._image_dir = os.path.join(BASE_DIRECTORY, 'material', 'れいむ')
+        self._image_directory = os.path.join(
+            BASE_DIRECTORY, 'material', MATERIAL_NAME)
 
         # コア機能
         self._voice_manager = VoiceManager()
@@ -59,8 +63,8 @@ class LiveYukkuriRunner:
 
     def _register_visualizer_routes(self) -> None:
         app = self.visualizer_app
-        vm = self._voice_manager
-        image_dir = self._image_dir
+        voice_manager = self._voice_manager
+        image_dir = self._image_directory
 
         @app.route('/')
         def index():
@@ -73,7 +77,7 @@ class LiveYukkuriRunner:
 
         @app.route('/sound_queue', methods=['GET'])
         def get_sound_queue():
-            data = vm.dequeue_sound()
+            data = voice_manager.dequeue_sound()
             if data is not None:
                 return jsonify({'status': 'ok', 'data': data})
             return jsonify({'status': 'empty'})
@@ -84,7 +88,7 @@ class LiveYukkuriRunner:
 
     def _register_outbound_routes(self) -> None:
         app = self.outbound_app
-        vm = self._voice_manager
+        voice_manager = self._voice_manager
 
         @app.route('/speak', methods=['POST'])
         def speak():
@@ -94,7 +98,7 @@ class LiveYukkuriRunner:
                 return jsonify({'status': 'error', 'message': 'text is required'}), 400
 
             try:
-                _, sound_values, sample_time = vm.speak(text)
+                _, sound_values, sample_time = voice_manager.speak(text)
             except Exception as exc:
                 return jsonify({'status': 'error', 'message': str(exc)}), 500
 
