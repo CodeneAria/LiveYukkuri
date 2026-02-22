@@ -74,7 +74,7 @@ Content-Type: application/json
 
 概要クラス図
 
-![概要クラス図](./document/system/概要クラス図.svg)
+![概要クラス図](./document/system/architecture-概要クラス図.svg)
 
 | パス | 説明 |
 | --- | --- |
