@@ -61,7 +61,8 @@ class LiveYukkuriRunner:
         self._sound_forwarder_thread: threading.Thread | None = None
 
         # Visualizer Flask app
-        templates_path = os.path.join(BASE_DIRECTORY, 'source', 'templates')
+        templates_path = os.path.join(
+            BASE_DIRECTORY, 'source', 'visualizer', 'templates')
         self.visualizer_app = Flask(__name__, template_folder=templates_path)
 
         # Outbound Flask app
