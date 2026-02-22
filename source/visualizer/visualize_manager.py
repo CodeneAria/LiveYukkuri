@@ -1,7 +1,13 @@
 from __future__ import annotations
 
-import json
 import os
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parents[1]))
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+
+import json
 import threading
 
 from flask import Flask, render_template, send_from_directory, Response, stream_with_context

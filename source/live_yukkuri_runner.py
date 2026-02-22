@@ -11,7 +11,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 from flask import Flask, request, jsonify
 
 from source.voice.voice_manager import VoiceManager
-from source.visualizer.templates.visualize_manager import VisualizeManager
+from source.visualizer.visualize_manager import VisualizeManager
 
 from configuration.communication_settings import (
     HOST_NAME,
