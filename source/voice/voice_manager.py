@@ -136,7 +136,37 @@ class VoiceManager:
         Args:
             flag: True にすると現在再生中の音声を停止させる方向へ動作する。
         """
-        self._voice_output_stop_flag = bool(flag)
+        flag = bool(flag)
+        # When requesting stop, clear pending visualizer sound queue
+        # and attempt to stop currently playing audio immediately.
+        if flag:
+            self._voice_output_stop_flag = True
+            # clear queued sound_values
+            with self._sound_queue_lock:
+                self._sound_queue.clear()
+
+            # try to stop audio playback (audio player server exposes /stop)
+            try:
+                # AudioPlayer.stop() may not exist on older versions; call if present.
+                stop_fn = getattr(self._audio_player, 'stop', None)
+                if callable(stop_fn):
+                    stop_fn()
+                else:
+                    # fallback: try to call internal HTTP endpoint directly
+                    try:
+                        import httpx
+                        from configuration.communication_settings import HOST_NAME, AUDIO_PLAYER_PORT
+                        httpx.post(
+                            f'http://127.0.0.1:{AUDIO_PLAYER_PORT}/stop', timeout=1.0)
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+            # reset the flag after stopping
+            self._voice_output_stop_flag = False
+        else:
+            self._voice_output_stop_flag = False
 
     def _replace_text_for_speak(
         self,

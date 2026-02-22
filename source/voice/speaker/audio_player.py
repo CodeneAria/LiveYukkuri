@@ -25,6 +25,8 @@ PLAY_TIMEOUT_SECONDS = 5.0
 app = Flask(__name__)
 _server_lock = threading.Lock()
 _server_thread: threading.Thread | None = None
+_current_proc_lock = threading.Lock()
+_current_proc: multiprocessing.Process | None = None
 
 
 def _play_worker(audio_bytes: bytes, result_queue: multiprocessing.Queue) -> None:
@@ -57,6 +59,10 @@ def play_audio() -> tuple[dict[str, bool | str], int]:
     proc = multiprocessing.Process(
         target=_play_worker, args=(audio_bytes, result_queue), daemon=True
     )
+    with _current_proc_lock:
+        global _current_proc
+        _current_proc = proc
+
     proc.start()
     proc.join()
 
@@ -65,7 +71,32 @@ def play_audio() -> tuple[dict[str, bool | str], int]:
     except Exception:
         played = False
 
+    with _current_proc_lock:
+        _current_proc = None
+
     return {'status': 'success', 'played': played}, 200
+
+
+@app.route('/stop', methods=['POST'])
+def stop_audio() -> tuple[dict[str, bool | str], int]:
+    """外部から再生中のプロセスを強制終了するエンドポイント。"""
+    try:
+        with _current_proc_lock:
+            global _current_proc
+            if _current_proc is None:
+                return {'status': 'ok', 'stopped': False, 'message': 'no active playback'}, 200
+            try:
+                _current_proc.terminate()
+            except Exception:
+                pass
+            try:
+                _current_proc.join(timeout=0.5)
+            except Exception:
+                pass
+            _current_proc = None
+        return {'status': 'ok', 'stopped': True}, 200
+    except Exception as exc:
+        return {'status': 'error', 'message': str(exc)}, 500
 
 
 def _is_server_alive() -> bool:
@@ -119,6 +150,22 @@ class AudioPlayer:
     def __init__(self) -> None:
         ensure_audio_server_running()
         self._play_url = f'http://127.0.0.1:{AUDIO_PLAYER_PORT}/play'
+
+    def stop(self) -> bool:
+        """再生中のプロセスを強制終了するリクエストを送る。
+
+        Returns:
+            True: 再生停止要求を送信できた
+            False: 失敗
+        """
+        stop_url = f'http://127.0.0.1:{AUDIO_PLAYER_PORT}/stop'
+        try:
+            response = httpx.post(stop_url, timeout=1.0)
+            response.raise_for_status()
+            data = response.json()
+            return bool(data.get('stopped', False))
+        except Exception:
+            return False
 
     def play(self, audio_bytes: bytes) -> bool:
         """WAV データを再生サーバーへ送信して再生する。
