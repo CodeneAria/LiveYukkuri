@@ -130,6 +130,43 @@ class LiveYukkuriRunner:
                 'sample_time': sample_time,
             })
 
+        @app.route('/voice_output_stop_flag', methods=['POST', 'PUT'])
+        def voice_output_stop_flag():
+            # Accept JSON boolean, JSON object with key, or query param
+            data = None
+            try:
+                data = request.get_json(silent=True)
+            except Exception:
+                data = None
+
+            flag = None
+            if isinstance(data, bool):
+                flag = data
+            elif isinstance(data, dict):
+                if 'voice_output_stop_flag' in data:
+                    flag = bool(data.get('voice_output_stop_flag'))
+                elif 'value' in data:
+                    flag = bool(data.get('value'))
+            # fallback to query params
+            if flag is None:
+                val = request.args.get('value') or request.args.get('flag')
+                if val is not None:
+                    v = val.lower()
+                    if v in ('1', 'true', 'yes', 'on'):
+                        flag = True
+                    elif v in ('0', 'false', 'no', 'off'):
+                        flag = False
+
+            if flag is None:
+                flag = True
+
+            try:
+                voice_manager.set_voice_output_stop_flag(flag)
+            except Exception as exc:
+                return jsonify({'status': 'error', 'message': str(exc)}), 500
+
+            return jsonify({'status': 'ok', 'voice_output_stop_flag': flag})
+
     # ------------------------------------------------------------------
     # Run
     # ------------------------------------------------------------------

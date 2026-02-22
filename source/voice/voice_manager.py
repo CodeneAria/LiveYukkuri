@@ -31,6 +31,8 @@ class VoiceManager:
 
         self._sound_queue: list[dict] = []
         self._sound_queue_lock = threading.Lock()
+        # When True, ongoing and future voice output should stop
+        self._voice_output_stop_flag = False
 
     def speak(self, text: str) -> tuple[bytes, list[float], float]:
         """テキストから音声を生成・再生し、結果を返す。
@@ -78,7 +80,10 @@ class VoiceManager:
                     self.enqueue_sound(
                         sound_values, sample_time)
 
-                    # 再生サーバーへ送信して再生
+                    if getattr(self, '_voice_output_stop_flag', False):
+                        stop_event.set()
+                        break
+
                     played = self._audio_player.play(audio_data)
                     if not played:
                         raise RuntimeError('audio playback failed')
@@ -124,6 +129,14 @@ class VoiceManager:
             if self._sound_queue:
                 return self._sound_queue.pop(0)
         return None
+
+    def set_voice_output_stop_flag(self, flag: bool) -> None:
+        """外部から音声出力停止フラグを設定する。
+
+        Args:
+            flag: True にすると現在再生中の音声を停止させる方向へ動作する。
+        """
+        self._voice_output_stop_flag = bool(flag)
 
     def _replace_text_for_speak(
         self,
