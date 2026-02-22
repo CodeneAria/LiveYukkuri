@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ライブ ゆっくり</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Meiryo, sans-serif;
+            background-color: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .image-container {
+            position: relative;
+            width: 500px;
+            height: 500px;
+            background-color: green;
+            border: 2px solid #ccc;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .image-container img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        /* Layering order (higher z-index means on top) */
+        .layer-body {
+            z-index: 1;
+        }
+
+        .layer-face {
+            z-index: 2;
+        }
+
+        .layer-eyebrows {
+            z-index: 3;
+        }
+
+        .layer-eyes {
+            z-index: 4;
+        }
+
+        .layer-mouth {
+            z-index: 5;
+        }
+
+        .info {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+        }
+
+        .info h2 {
+            margin-top: 0;
+            color: #555;
+            font-size: 18px;
+        }
+
+        .info ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .info li {
+            margin: 5px 0;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>ライブ ゆっくり</h1>
+
+    <div class="image-container">
+        <img src="/images/体/00.png" class="layer-body" alt="体">
+        <img src="/images/顔/00a.png" class="layer-face" alt="顔">
+        <img src="/images/眉/07.png" class="layer-eyebrows" alt="眉">
+        <img src="/images/目/00.png" class="layer-eyes" alt="目">
+        <img src="/images/口/00.png" class="layer-mouth" alt="口">
+    </div>
+
+    <script>
+        // ===== blink animation =====
+        const eyesLayer = document.querySelector('.layer-eyes');
+        let isBlinking = false;
+
+        const blinkSequence = [
+            '00.png',
+            '00a.png',
+            '00b.png',
+            '00c.png',
+            '00d.png',
+            '00e.png',
+            '00d.png',
+            '00c.png',
+            '00b.png',
+            '00a.png',
+            '00.png'
+        ];
+
+        function executeBlink() {
+            if (isBlinking) return;
+            isBlinking = true;
+            let frameIndex = 0;
+            const blinkInterval = setInterval(() => {
+                if (frameIndex < blinkSequence.length) {
+                    eyesLayer.src = `/images/目/${blinkSequence[frameIndex]}`;
+                    frameIndex++;
+                } else {
+                    clearInterval(blinkInterval);
+                    isBlinking = false;
+                }
+            }, 20);
+        }
+
+        setInterval(() => {
+            if (Math.random() >= 0.9) executeBlink();
+        }, 200);
+
+        // ===== mouth animation =====
+        const mouthLayer = document.querySelector('.layer-mouth');
+        let mouthStopRequested = false;
+
+        // Convert normalized value (0-1) to mouth image file name
+        // 0.0 → 00.png, 1.0 → 00e.png (6 steps)
+        const mouthImages = ['00.png', '00a.png', '00b.png', '00c.png', '00d.png', '00e.png'];
+        function soundValueToMouthImage(value) {
+            const index = Math.min(Math.floor(value * mouthImages.length), mouthImages.length - 1);
+            return mouthImages[index];
+        }
+
+        let isMouthPlaying = false;
+        const pendingMouthAnimations = [];
+
+        // Play sound_values sequentially for mouth animation
+        function playMouthAnimation(soundValues, sampleTimeMs) {
+                    if (isMouthPlaying) return;
+                    if (mouthStopRequested) return;
+                    isMouthPlaying = true;
+
+            let i = 0;
+            function step() {
+                if (mouthStopRequested) {
+                    mouthLayer.src = '/images/口/00.png';
+                    isMouthPlaying = false;
+                    pendingMouthAnimations.length = 0;
+                    return;
+                }
+
+                if (i < soundValues.length) {
+                    mouthLayer.src = `/images/口/${soundValueToMouthImage(soundValues[i])}`;
+                    i++;
+                    setTimeout(step, sampleTimeMs);
+                } else {
+                    mouthLayer.src = '/images/口/00.png';
+                    isMouthPlaying = false;
+                    playNextMouthAnimation();
+                }
+            }
+            step();
+        }
+
+        function enqueueMouthAnimation(soundValues, sampleTimeMs) {
+            pendingMouthAnimations.push({ soundValues, sampleTimeMs });
+            playNextMouthAnimation();
+        }
+
+        function playNextMouthAnimation() {
+            if (isMouthPlaying) return;
+            if (pendingMouthAnimations.length === 0) return;
+
+            const next = pendingMouthAnimations.shift();
+            playMouthAnimation(next.soundValues, next.sampleTimeMs);
+        }
+
+        // Receive sound volume data pushed from the server
+        const soundEventSource = new EventSource('/sound_events');
+        soundEventSource.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (!data) return;
+                if (data.control) {
+                    if (data.control === 'stop') {
+                        mouthStopRequested = true;
+                        pendingMouthAnimations.length = 0;
+                        isMouthPlaying = false;
+                        mouthLayer.src = '/images/口/00.png';
+                    } else if (data.control === 'resume') {
+                        mouthStopRequested = false;
+                    }
+                    return;
+                }
+
+                if (!data.sound_values || data.sample_time === undefined) return;
+                if (mouthStopRequested) return;
+                enqueueMouthAnimation(data.sound_values, data.sample_time * 1000);
+            } catch (e) {
+                // Ignore invalid data
+            }
+        };
+
+        soundEventSource.onerror = () => {
+            // Let the browser handle automatic reconnection on connection errors
+        };
+    </script>
+</body>
+</html>

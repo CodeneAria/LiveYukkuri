@@ -1,0 +1,22 @@
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parents[1]))
+
+# person settings
+MATERIAL_NAME = "れいむ"
+MOUSE_DELAY_TIME = 0.5
+
+# aquestalk settings
+VOICE_SPEED = 1.2
+SAMPLE_INTERVAL = 0.1  # seconds
+VOICE_SCALE_FACTOR = 1.5
+SERVER_EXE = Path(__file__).resolve().parents[1] / "aquestalk-server.exe"
+AQUESTALK_URL = "http://localhost:8080"
+
+# text for speak replacer
+TEXT_FOR_SPEAK_REPLACEMENTS = {
+    "私": "わたし",
+}
