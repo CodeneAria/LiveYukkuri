@@ -53,7 +53,7 @@ class LiveYukkuriRunner:
         self._sound_forwarder_thread: threading.Thread | None = None
         # Visualizer manager
         self.visualize_manager = VisualizeManager(
-            BASE_DIRECTORY, MATERIAL_NAME)
+            BASE_DIRECTORY)
 
         # Outbound Flask app
         self.outbound_app = Flask(__name__ + '_outbound')

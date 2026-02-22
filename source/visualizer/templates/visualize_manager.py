@@ -11,13 +11,19 @@ from configuration.communication_settings import (
     HOST_NAME,
     VISUALIZER_PORT
 )
+from configuration.person_settings import (
+    MATERIAL_NAME,
+)
 
 
 class VisualizeManager:
-    def __init__(self, base_directory: str, material_name: str) -> None:
+    def __init__(
+        self,
+        base_directory: str,
+    ) -> None:
         self._base_directory = base_directory
         self._image_directory = os.path.join(
-            base_directory, 'material', material_name)
+            base_directory, 'material', MATERIAL_NAME)
 
         templates_path = os.path.join(
             base_directory, 'source', 'visualizer', 'templates')
