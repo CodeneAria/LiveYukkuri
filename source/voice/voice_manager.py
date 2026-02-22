@@ -145,23 +145,7 @@ class VoiceManager:
             with self._sound_queue_lock:
                 self._sound_queue.clear()
 
-            # try to stop audio playback (audio player server exposes /stop)
-            try:
-                # AudioPlayer.stop() may not exist on older versions; call if present.
-                stop_fn = getattr(self._audio_player, 'stop', None)
-                if callable(stop_fn):
-                    stop_fn()
-                else:
-                    # fallback: try to call internal HTTP endpoint directly
-                    try:
-                        import httpx
-                        from configuration.communication_settings import HOST_NAME, AUDIO_PLAYER_PORT
-                        httpx.post(
-                            f'http://127.0.0.1:{AUDIO_PLAYER_PORT}/stop', timeout=1.0)
-                    except Exception:
-                        pass
-            except Exception:
-                pass
+            self._audio_player.stop()
 
             # reset the flag after stopping
             self._voice_output_stop_flag = False
