@@ -7,6 +7,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 import json
+import queue
 import threading
 from flask import Flask, request, jsonify
 
@@ -48,6 +49,10 @@ class LiveYukkuriRunner:
         # コア機能
         self._voice_manager = VoiceManager()
 
+        # speak テキストキュー（非同期読み上げ用）
+        self._speak_text_queue: queue.Queue[str] = queue.Queue()
+        self._speak_worker_thread: threading.Thread | None = None
+
         # VoiceManager のキュー監視スレッド制御
         self._sound_forwarder_stop_event = threading.Event()
         self._sound_forwarder_thread: threading.Thread | None = None
@@ -63,6 +68,29 @@ class LiveYukkuriRunner:
     # ------------------------------------------------------------------
     # Visualizer server routes
     # ------------------------------------------------------------------
+
+    def _start_speak_worker(self) -> None:
+        if self._speak_worker_thread is not None:
+            return
+
+        def _speak_loop() -> None:
+            while True:
+                text = self._speak_text_queue.get()
+                if text is None:
+                    break
+                try:
+                    self._voice_manager.speak(text)
+                except Exception as exc:
+                    print(f'[speak-worker] Error: {exc}', flush=True)
+                finally:
+                    self._speak_text_queue.task_done()
+
+        self._speak_worker_thread = threading.Thread(
+            target=_speak_loop,
+            daemon=True,
+            name='speak-worker',
+        )
+        self._speak_worker_thread.start()
 
     def _start_sound_forwarder(self) -> None:
         if self._sound_forwarder_thread is not None:
@@ -119,16 +147,8 @@ class LiveYukkuriRunner:
             if not text:
                 return jsonify({'status': 'error', 'message': 'text is required'}), 400
 
-            try:
-                _, sound_values, sample_time = voice_manager.speak(text)
-            except Exception as exc:
-                return jsonify({'status': 'error', 'message': str(exc)}), 500
-
-            return jsonify({
-                'status': 'ok',
-                'samples': len(sound_values),
-                'sample_time': sample_time,
-            })
+            self._speak_text_queue.put(text)
+            return jsonify({'status': 'ok', 'queued': True})
 
         @app.route('/voice_output_stop_flag', methods=['POST', 'PUT'])
         def voice_output_stop_flag():
@@ -174,6 +194,7 @@ class LiveYukkuriRunner:
     def run(self, debug: bool = False) -> None:
         """outbound サーバーをバックグラウンドスレッドで起動後、visualizer を起動する。"""
 
+        self._start_speak_worker()
         self._start_sound_forwarder()
 
         def run_outbound():
