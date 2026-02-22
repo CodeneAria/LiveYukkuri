@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import os
 import threading
-from pathlib import Path
 
 from flask import Flask, render_template, send_from_directory, Response, stream_with_context
 
