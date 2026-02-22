@@ -79,6 +79,7 @@ class LiveYukkuriRunner:
                 if text is None:
                     break
                 try:
+                    self.visualize_manager.set_voice_output_stop_flag(False)
                     self._voice_manager.speak(text)
                 except Exception as exc:
                     print(f'[speak-worker] Error: {exc}', flush=True)
