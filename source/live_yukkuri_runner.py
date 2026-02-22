@@ -16,7 +16,6 @@ from source.visualizer.templates.visualize_manager import VisualizeManager
 from configuration.communication_settings import (
     HOST_NAME,
     OUTBOUND_PORT,
-    VISUALIZER_PORT
 )
 from configuration.person_settings import (
     MATERIAL_NAME,
@@ -39,10 +38,8 @@ class LiveYukkuriRunner:
 
     def __init__(self,
                  host: str = HOST_NAME,
-                 visualizer_port: int = VISUALIZER_PORT,
                  outbound_port: int = OUTBOUND_PORT) -> None:
         self._host = host
-        self._visualizer_port = visualizer_port
         self._outbound_port = outbound_port
 
         self._image_directory = os.path.join(
@@ -149,17 +146,11 @@ class LiveYukkuriRunner:
         outbound_thread = threading.Thread(target=run_outbound, daemon=True)
         outbound_thread.start()
 
-        def _print_open_message():
-            print(
-                f'\nOpen: http://127.0.0.1:{self._visualizer_port}', flush=True)
-
-        timer = threading.Timer(1.0, _print_open_message)
+        timer = threading.Timer(1.0, self.visualize_manager.print_open_message)
         timer.daemon = True
         timer.start()
 
         self.visualize_manager.run(
             debug=debug,
-            host=self._host,
-            port=self._visualizer_port,
             use_reloader=False,
         )

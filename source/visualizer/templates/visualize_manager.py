@@ -7,6 +7,11 @@ from pathlib import Path
 
 from flask import Flask, render_template, send_from_directory, Response, stream_with_context
 
+from configuration.communication_settings import (
+    HOST_NAME,
+    VISUALIZER_PORT
+)
+
 
 class VisualizeManager:
     def __init__(self, base_directory: str, material_name: str) -> None:
@@ -72,6 +77,14 @@ class VisualizeManager:
 
         return None
 
-    def run(self, debug: bool = False, host: str = '0.0.0.0', port: int = 50201, use_reloader: bool = False) -> None:
-        self.app.run(debug=debug, host=host, port=port,
+    def print_open_message(self) -> None:
+        print(
+            f'\nOpen: http://127.0.0.1:{VISUALIZER_PORT}', flush=True)
+
+    def run(
+        self,
+        debug: bool = False,
+        use_reloader: bool = False
+    ) -> None:
+        self.app.run(debug=debug, host=HOST_NAME, port=VISUALIZER_PORT,
                      use_reloader=use_reloader)
