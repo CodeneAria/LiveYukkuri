@@ -78,6 +78,23 @@ class VisualizeManager:
             self._visualizer_sound_queue.append(data)
             self._visualizer_sound_queue_condition.notify()
 
+    def set_voice_output_stop_flag(self, flag: bool) -> None:
+        """Notify visualizer clients to stop or resume mouth animation.
+
+        When stopping, clear pending sound events and enqueue a control
+        event so connected clients can immediately halt mouth animation.
+        """
+        with self._visualizer_sound_queue_condition:
+            # clear pending sound events
+            self._visualizer_sound_queue.clear()
+            control = {'control': 'stop'} if flag else {'control': 'resume'}
+            self._visualizer_sound_queue.append(control)
+            # wake any waiting SSE generator(s)
+            try:
+                self._visualizer_sound_queue_condition.notify_all()
+            except Exception:
+                self._visualizer_sound_queue_condition.notify()
+
     def wait_and_dequeue_visualizer_sound(self, timeout: float) -> dict | None:
         with self._visualizer_sound_queue_condition:
             if not self._visualizer_sound_queue:

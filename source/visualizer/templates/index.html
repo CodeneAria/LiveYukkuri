@@ -138,6 +138,7 @@
 
         // ===== mouth animation =====
         const mouthLayer = document.querySelector('.layer-mouth');
+        let mouthStopRequested = false;
 
         // Convert normalized value (0-1) to mouth image file name
         // 0.0 → 00.png, 1.0 → 00e.png (6 steps)
@@ -152,11 +153,19 @@
 
         // Play sound_values sequentially for mouth animation
         function playMouthAnimation(soundValues, sampleTimeMs) {
-            if (isMouthPlaying) return;
-            isMouthPlaying = true;
+                    if (isMouthPlaying) return;
+                    if (mouthStopRequested) return;
+                    isMouthPlaying = true;
 
             let i = 0;
             function step() {
+                if (mouthStopRequested) {
+                    mouthLayer.src = '/images/口/00.png';
+                    isMouthPlaying = false;
+                    pendingMouthAnimations.length = 0;
+                    return;
+                }
+
                 if (i < soundValues.length) {
                     mouthLayer.src = `/images/口/${soundValueToMouthImage(soundValues[i])}`;
                     i++;
@@ -188,7 +197,21 @@
         soundEventSource.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
-                if (!data || !data.sound_values || data.sample_time === undefined) return;
+                if (!data) return;
+                if (data.control) {
+                    if (data.control === 'stop') {
+                        mouthStopRequested = true;
+                        pendingMouthAnimations.length = 0;
+                        isMouthPlaying = false;
+                        mouthLayer.src = '/images/口/00.png';
+                    } else if (data.control === 'resume') {
+                        mouthStopRequested = false;
+                    }
+                    return;
+                }
+
+                if (!data.sound_values || data.sample_time === undefined) return;
+                if (mouthStopRequested) return;
                 enqueueMouthAnimation(data.sound_values, data.sample_time * 1000);
             } catch (e) {
                 // Ignore invalid data

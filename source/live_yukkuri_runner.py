@@ -185,6 +185,11 @@ class LiveYukkuriRunner:
             except Exception as exc:
                 return jsonify({'status': 'error', 'message': str(exc)}), 500
 
+            try:
+                self.visualize_manager.set_voice_output_stop_flag(flag)
+            except Exception:
+                pass
+
             return jsonify({'status': 'ok', 'voice_output_stop_flag': flag})
 
     # ------------------------------------------------------------------
