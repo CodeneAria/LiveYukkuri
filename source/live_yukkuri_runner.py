@@ -18,12 +18,12 @@ from configuration.communication_settings import (
     VISUALIZER_PORT
 )
 from configuration.person_settings import (
-    MATERIAL_NAME
+    MATERIAL_NAME,
+    MOUSE_DELAY_TIME
 )
 
 BASE_DIRECTORY = str(Path(__file__).resolve().parents[1])
-
-MOUSE_DELAY = 0.4
+SOUND_QUEUE_CHECK_INTERVAL = 0.05
 
 
 class LiveYukkuriRunner:
@@ -129,11 +129,9 @@ class LiveYukkuriRunner:
             while not self._sound_forwarder_stop_event.is_set():
                 data = self._voice_manager.dequeue_sound()
                 if data is not None:
-                    delay = 0.0
-                    if isinstance(data, dict):
-                        delay = MOUSE_DELAY
+                    delay = MOUSE_DELAY_TIME
 
-                    if delay and delay > 0.0:
+                    if delay > 0.0:
                         def _enqueue_later(d=data) -> None:
                             # Remove 'delay' key when forwarding to visualizer
                             if isinstance(d, dict) and 'delay' in d:
@@ -152,7 +150,8 @@ class LiveYukkuriRunner:
                                     'delay'}
                         self._enqueue_visualizer_sound(data)
 
-                self._sound_forwarder_stop_event.wait(0.05)
+                self._sound_forwarder_stop_event.wait(
+                    SOUND_QUEUE_CHECK_INTERVAL)
 
         self._sound_forwarder_thread = threading.Thread(
             target=_forward_loop,
