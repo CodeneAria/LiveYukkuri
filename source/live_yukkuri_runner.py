@@ -190,6 +190,12 @@ class LiveYukkuriRunner:
             except Exception:
                 pass
 
+            if flag:
+                try:
+                    self._clear_speak_text_queue()
+                except Exception:
+                    pass
+
             return jsonify({'status': 'ok', 'voice_output_stop_flag': flag})
 
     # ------------------------------------------------------------------
@@ -217,3 +223,21 @@ class LiveYukkuriRunner:
             debug=debug,
             use_reloader=False,
         )
+
+    def _clear_speak_text_queue(self) -> None:
+        """Clear all pending items in the speak text queue.
+
+        Removes all queued texts so they won't be spoken after a stop
+        request. Calls `task_done()` for each removed item to keep the
+        queue internal counters consistent.
+        """
+        try:
+            while True:
+                item = self._speak_text_queue.get_nowait()
+                try:
+                    self._speak_text_queue.task_done()
+                except Exception:
+                    # ignore task_done errors
+                    pass
+        except queue.Empty:
+            pass
