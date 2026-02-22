@@ -8,7 +8,7 @@ import httpx
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from source.live_yukkuri_runner import OUTBOUND_PORT
+from configuration.communication_settings import OUTBOUND_PORT
 
 SPEAK_URL = f"http://127.0.0.1:{OUTBOUND_PORT}/speak"
 # TEXT = "私は博麗霊夢です。よろしくお願いします。"
