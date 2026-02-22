@@ -11,7 +11,7 @@ from flask import Flask, render_template, send_from_directory, request, jsonify
 
 from source.voice.voice_manager import VoiceManager
 
-from configuration.communcation_settings import (
+from configuration.communication_settings import (
     HOST_NAME,
     OUTBOUND_PORT,
     VISUALIZER_PORT

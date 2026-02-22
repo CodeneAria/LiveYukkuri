@@ -14,12 +14,12 @@ import winsound
 import httpx
 from flask import Flask, jsonify, request
 
-from configuration.communcation_settings import (
+from configuration.communication_settings import (
     AUDIO_PLAYER_PORT,
     HOST_NAME
 )
 
-PLAY_TIMEOUT_SECONDS = 120.0
+PLAY_TIMEOUT_SECONDS = 5.0
 
 
 app = Flask(__name__)
