@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import sys
 import os
-import json
-import threading
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
+import json
+import threading
 from flask import Flask, request, jsonify
 
 from source.voice.voice_manager import VoiceManager
