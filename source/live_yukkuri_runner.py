@@ -85,13 +85,6 @@ class LiveYukkuriRunner:
             image_path = os.path.join(image_dir, folder)
             return send_from_directory(image_path, filename)
 
-        @app.route('/sound_queue', methods=['GET'])
-        def get_sound_queue():
-            data = self._dequeue_visualizer_sound()
-            if data is not None:
-                return jsonify({'status': 'ok', 'data': data})
-            return jsonify({'status': 'empty'})
-
         @app.route('/sound_events', methods=['GET'])
         def sound_events():
             @stream_with_context
@@ -115,12 +108,6 @@ class LiveYukkuriRunner:
         with self._visualizer_sound_queue_condition:
             self._visualizer_sound_queue.append(data)
             self._visualizer_sound_queue_condition.notify()
-
-    def _dequeue_visualizer_sound(self) -> dict | None:
-        with self._visualizer_sound_queue_lock:
-            if self._visualizer_sound_queue:
-                return self._visualizer_sound_queue.pop(0)
-        return None
 
     def _wait_and_dequeue_visualizer_sound(self, timeout: float) -> dict | None:
         with self._visualizer_sound_queue_condition:
