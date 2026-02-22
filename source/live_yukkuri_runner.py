@@ -55,18 +55,17 @@ class LiveYukkuriRunner:
         self._sound_forwarder_stop_event = threading.Event()
         self._sound_forwarder_thread: threading.Thread | None = None
         # Visualizer manager
-        self.visualize_manager = VisualizeManager(BASE_DIRECTORY, MATERIAL_NAME)
+        self.visualize_manager = VisualizeManager(
+            BASE_DIRECTORY, MATERIAL_NAME)
 
         # Outbound Flask app
         self.outbound_app = Flask(__name__ + '_outbound')
-        
+
         self._register_outbound_routes()
 
     # ------------------------------------------------------------------
     # Visualizer server routes
     # ------------------------------------------------------------------
-
-
 
     def _start_sound_forwarder(self) -> None:
         if self._sound_forwarder_thread is not None:
@@ -82,17 +81,20 @@ class LiveYukkuriRunner:
                         def _enqueue_later(d=data) -> None:
                             # Remove 'delay' key when forwarding to visualizer
                             if isinstance(d, dict) and 'delay' in d:
-                                payload = {k: v for k, v in d.items() if k != 'delay'}
+                                payload = {k: v for k,
+                                           v in d.items() if k != 'delay'}
                             else:
                                 payload = d
-                            self.visualize_manager.enqueue_visualizer_sound(payload)
+                            self.visualize_manager.enqueue_visualizer_sound(
+                                payload)
 
                         timer = threading.Timer(delay, _enqueue_later)
                         timer.daemon = True
                         timer.start()
                     else:
                         if isinstance(data, dict) and 'delay' in data:
-                            data = {k: v for k, v in data.items() if k != 'delay'}
+                            data = {k: v for k, v in data.items() if k !=
+                                    'delay'}
                         self.visualize_manager.enqueue_visualizer_sound(data)
 
                 self._sound_forwarder_stop_event.wait(
