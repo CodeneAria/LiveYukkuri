@@ -19,6 +19,10 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from source.voice.voice_manager import VoiceManager
 
+from configuration.settings import (
+    VOICE_SCALE_FACTOR
+)
+
 
 class TestVoiceManager(unittest.TestCase):
     """VoiceManager の speak() および dequeue_sound() のテスト。"""
@@ -52,12 +56,13 @@ class TestVoiceManager(unittest.TestCase):
             sample_time, 0, f"sample_time が 0 以下: {sample_time}")
 
     def test_sound_values_scaled(self) -> None:
-        """音量値がすべて 0.0〜1.0 の範囲に正規化されていること。"""
+        """音量値がすべて範囲に正規化されていること。"""
         _, sound_values, _ = self._vm.speak("正規化テスト")
         self.assertGreater(len(sound_values), 0)
         for v in sound_values:
             self.assertGreaterEqual(v, 0.0, f"負の値が含まれています: {v}")
-            self.assertLessEqual(v, 1.0, f"1.0 超の値が含まれています: {v}")
+            self.assertLessEqual(v, VOICE_SCALE_FACTOR,
+                                 f"{VOICE_SCALE_FACTOR} 超の値が含まれています: {v}")
 
     def test_sound_queue_enqueued_after_speak(self) -> None:
         """speak() 後、dequeue_sound() で音量データを取得できること。"""

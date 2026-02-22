@@ -17,10 +17,12 @@ from pathlib import Path
 import httpx
 from openai import OpenAI
 
-SAMPLE_INTERVAL = 0.1  # seconds
-VOICE_SCALE_FACTOR = 1.5
-SERVER_EXE = Path(__file__).resolve().parents[3] / "aquestalk-server.exe"
-AQUESTALK_URL = "http://localhost:8080"
+from configuration.settings import (
+    AQUESTALK_URL,
+    SERVER_EXE,
+    SAMPLE_INTERVAL,
+    VOICE_SCALE_FACTOR
+)
 
 
 class AquesTalkGenerator:
