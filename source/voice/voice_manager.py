@@ -12,6 +12,10 @@ import queue
 from source.voice.speaker.voice_generator import VoiceGenerator
 from source.voice.speaker.audio_player import AudioPlayer
 
+from configuration.person_settings import (
+    TEXT_FOR_SPEAK_REPLACEMENTS,
+)
+
 
 class VoiceManager:
     """音声生成・再生・音量キュー管理クラス。
@@ -46,9 +50,11 @@ class VoiceManager:
         last_audio_data: bytes | None = None
         last_sample_time = 0.0
 
+        text_replaced = self._replace_text_for_speak(text)
+
         def _producer() -> None:
             try:
-                for chunk in self._voice_generator.generate_sequential(text):
+                for chunk in self._voice_generator.generate_sequential(text_replaced):
                     if stop_event.is_set():
                         break
                     chunks.put(chunk)
@@ -118,3 +124,11 @@ class VoiceManager:
             if self._sound_queue:
                 return self._sound_queue.pop(0)
         return None
+
+    def _replace_text_for_speak(
+        self,
+        text: str
+    ) -> str:
+        for target, replacement in TEXT_FOR_SPEAK_REPLACEMENTS.items():
+            text = text.replace(target, replacement)
+        return text
