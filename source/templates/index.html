@@ -165,6 +165,7 @@
         }
 
         let isMouthPlaying = false;
+        const pendingMouthAnimations = [];
 
         // sound_values を順番に再生してアニメーションする
         function playMouthAnimation(soundValues, sampleTimeMs) {
@@ -181,25 +182,40 @@
                     // 再生終了 → 口を閉じた状態に戻す
                     mouthLayer.src = '/images/口/00.png';
                     isMouthPlaying = false;
+                    playNextMouthAnimation();
                 }
             }
             step();
         }
 
-        // サーバーのキューを定期的に確認する（100msごと）
-        setInterval(async () => {
-            if (isMouthPlaying) return; // 再生中はポーリングしない
+        function enqueueMouthAnimation(soundValues, sampleTimeMs) {
+            pendingMouthAnimations.push({ soundValues, sampleTimeMs });
+            playNextMouthAnimation();
+        }
+
+        function playNextMouthAnimation() {
+            if (isMouthPlaying) return;
+            if (pendingMouthAnimations.length === 0) return;
+
+            const next = pendingMouthAnimations.shift();
+            playMouthAnimation(next.soundValues, next.sampleTimeMs);
+        }
+
+        // サーバーから push で音量データを受信する
+        const soundEventSource = new EventSource('/sound_events');
+        soundEventSource.onmessage = (event) => {
             try {
-                const res = await fetch('/sound_queue');
-                const json = await res.json();
-                if (json.status === 'ok' && json.data) {
-                    const { sound_values, sample_time } = json.data;
-                    playMouthAnimation(sound_values, sample_time * 1000);
-                }
+                const data = JSON.parse(event.data);
+                if (!data || !data.sound_values || data.sample_time === undefined) return;
+                enqueueMouthAnimation(data.sound_values, data.sample_time * 1000);
             } catch (e) {
-                // サーバーに接続できない場合は無視
+                // 受信データが不正な場合は無視
             }
-        }, 100);
+        };
+
+        soundEventSource.onerror = () => {
+            // 接続エラー時はブラウザ側の自動再接続に任せる
+        };
     </script>
 </body>
 </html>

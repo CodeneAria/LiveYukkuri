@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import sys
 import os
+import json
 import threading
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from flask import Flask, render_template, send_from_directory, request, jsonify
+from flask import Flask, render_template, send_from_directory, request, jsonify, Response, stream_with_context
 
 from source.voice.voice_manager import VoiceManager
 
@@ -47,6 +48,16 @@ class LiveYukkuriRunner:
         # コア機能
         self._voice_manager = VoiceManager()
 
+        # Visualizer へ渡すための中継キュー
+        self._visualizer_sound_queue: list[dict] = []
+        self._visualizer_sound_queue_lock = threading.Lock()
+        self._visualizer_sound_queue_condition = threading.Condition(
+            self._visualizer_sound_queue_lock)
+
+        # VoiceManager のキュー監視スレッド制御
+        self._sound_forwarder_stop_event = threading.Event()
+        self._sound_forwarder_thread: threading.Thread | None = None
+
         # Visualizer Flask app
         templates_path = os.path.join(BASE_DIRECTORY, 'source', 'templates')
         self.visualizer_app = Flask(__name__, template_folder=templates_path)
@@ -63,7 +74,6 @@ class LiveYukkuriRunner:
 
     def _register_visualizer_routes(self) -> None:
         app = self.visualizer_app
-        voice_manager = self._voice_manager
         image_dir = self._image_directory
 
         @app.route('/')
@@ -77,10 +87,69 @@ class LiveYukkuriRunner:
 
         @app.route('/sound_queue', methods=['GET'])
         def get_sound_queue():
-            data = voice_manager.dequeue_sound()
+            data = self._dequeue_visualizer_sound()
             if data is not None:
                 return jsonify({'status': 'ok', 'data': data})
             return jsonify({'status': 'empty'})
+
+        @app.route('/sound_events', methods=['GET'])
+        def sound_events():
+            @stream_with_context
+            def generate():
+                while True:
+                    data = self._wait_and_dequeue_visualizer_sound(
+                        timeout=15.0)
+                    if data is None:
+                        yield ': keep-alive\n\n'
+                        continue
+
+                    payload = json.dumps(data, ensure_ascii=False)
+                    yield f'data: {payload}\n\n'
+
+            response = Response(generate(), mimetype='text/event-stream')
+            response.headers['Cache-Control'] = 'no-cache'
+            response.headers['X-Accel-Buffering'] = 'no'
+            return response
+
+    def _enqueue_visualizer_sound(self, data: dict) -> None:
+        with self._visualizer_sound_queue_condition:
+            self._visualizer_sound_queue.append(data)
+            self._visualizer_sound_queue_condition.notify()
+
+    def _dequeue_visualizer_sound(self) -> dict | None:
+        with self._visualizer_sound_queue_lock:
+            if self._visualizer_sound_queue:
+                return self._visualizer_sound_queue.pop(0)
+        return None
+
+    def _wait_and_dequeue_visualizer_sound(self, timeout: float) -> dict | None:
+        with self._visualizer_sound_queue_condition:
+            if not self._visualizer_sound_queue:
+                self._visualizer_sound_queue_condition.wait(timeout=timeout)
+
+            if self._visualizer_sound_queue:
+                return self._visualizer_sound_queue.pop(0)
+
+        return None
+
+    def _start_sound_forwarder(self) -> None:
+        if self._sound_forwarder_thread is not None:
+            return
+
+        def _forward_loop() -> None:
+            while not self._sound_forwarder_stop_event.is_set():
+                data = self._voice_manager.dequeue_sound()
+                if data is not None:
+                    self._enqueue_visualizer_sound(data)
+
+                self._sound_forwarder_stop_event.wait(0.05)
+
+        self._sound_forwarder_thread = threading.Thread(
+            target=_forward_loop,
+            daemon=True,
+            name='sound-forwarder',
+        )
+        self._sound_forwarder_thread.start()
 
     # ------------------------------------------------------------------
     # Outbound server routes
@@ -114,6 +183,8 @@ class LiveYukkuriRunner:
 
     def run(self, debug: bool = False) -> None:
         """outbound サーバーをバックグラウンドスレッドで起動後、visualizer を起動する。"""
+
+        self._start_sound_forwarder()
 
         def run_outbound():
             self.outbound_app.run(
