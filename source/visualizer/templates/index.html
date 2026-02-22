@@ -22,9 +22,9 @@
 
         .image-container {
             position: relative;
-            width: 500px;  /* 画像のサイズに合わせて調整 */
+            width: 500px;
             height: 500px;
-            background-color: white;
+            background-color: green;
             border: 2px solid #ccc;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
@@ -40,7 +40,7 @@
             object-fit: contain;
         }
 
-        /* 重なり順の指定（z-indexが大きいほど上） */
+        /* Layering order (higher z-index means on top) */
         .layer-body {
             z-index: 1;
         }
@@ -99,7 +99,7 @@
     </div>
 
     <script>
-        // ===== 瞬きアニメーション =====
+        // ===== blink animation =====
         const eyesLayer = document.querySelector('.layer-eyes');
         let isBlinking = false;
 
@@ -136,11 +136,11 @@
             if (Math.random() >= 0.9) executeBlink();
         }, 200);
 
-        // ===== 口アニメーション =====
+        // ===== mouth animation =====
         const mouthLayer = document.querySelector('.layer-mouth');
 
-        // 正規化値（0〜1）を口画像ファイル名に変換する
-        // 0.0 → 00.png, 1.0 → 00e.png の6段階
+        // Convert normalized value (0-1) to mouth image file name
+        // 0.0 → 00.png, 1.0 → 00e.png (6 steps)
         const mouthImages = ['00.png', '00a.png', '00b.png', '00c.png', '00d.png', '00e.png'];
         function soundValueToMouthImage(value) {
             const index = Math.min(Math.floor(value * mouthImages.length), mouthImages.length - 1);
@@ -150,7 +150,7 @@
         let isMouthPlaying = false;
         const pendingMouthAnimations = [];
 
-        // sound_values を順番に再生してアニメーションする
+        // Play sound_values sequentially for mouth animation
         function playMouthAnimation(soundValues, sampleTimeMs) {
             if (isMouthPlaying) return;
             isMouthPlaying = true;
@@ -162,7 +162,6 @@
                     i++;
                     setTimeout(step, sampleTimeMs);
                 } else {
-                    // 再生終了 → 口を閉じた状態に戻す
                     mouthLayer.src = '/images/口/00.png';
                     isMouthPlaying = false;
                     playNextMouthAnimation();
@@ -184,7 +183,7 @@
             playMouthAnimation(next.soundValues, next.sampleTimeMs);
         }
 
-        // サーバーから push で音量データを受信する
+        // Receive sound volume data pushed from the server
         const soundEventSource = new EventSource('/sound_events');
         soundEventSource.onmessage = (event) => {
             try {
@@ -192,12 +191,12 @@
                 if (!data || !data.sound_values || data.sample_time === undefined) return;
                 enqueueMouthAnimation(data.sound_values, data.sample_time * 1000);
             } catch (e) {
-                // 受信データが不正な場合は無視
+                // Ignore invalid data
             }
         };
 
         soundEventSource.onerror = () => {
-            // 接続エラー時はブラウザ側の自動再接続に任せる
+            // Let the browser handle automatic reconnection on connection errors
         };
     </script>
 </body>
